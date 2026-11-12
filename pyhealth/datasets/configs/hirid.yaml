@@ -1,0 +1,48 @@
+# HiRID 1.1.1 raw source tables.
+#
+# HiRID assigns a unique patientid to each ICU (re-)admission and does not
+# expose an identifier linking multiple admissions from one person. Therefore
+# patientid is the PyHealth patient ID for every table.
+version: "1.1.1"
+tables:
+  general_table:
+    file_path: "general_table.csv"
+    patient_id: "patientid"
+    timestamp: "admissiontime"
+    timestamp_format: "%Y-%m-%d %H:%M:%S"
+    attributes:
+      - "sex"
+      - "age"
+      - "discharge_status"
+
+  observation_tables:
+    file_path: "observation_tables/parquet"
+    patient_id: "patientid"
+    # Native timestamp in the published Parquet schema.
+    timestamp: "datetime"
+    attributes:
+      - "entertime"
+      - "status"
+      - "stringvalue"
+      - "type"
+      - "value"
+      - "variableid"
+
+  pharma_records:
+    file_path: "pharma_records/parquet"
+    patient_id: "patientid"
+    # Native timestamp in the published Parquet schema.
+    timestamp: "givenat"
+    attributes:
+      - "pharmaid"
+      - "enteredentryat"
+      - "givendose"
+      - "cumulativedose"
+      - "fluidamount_calc"
+      - "cumulfluidamount_calc"
+      - "doseunit"
+      - "route"
+      - "infusionid"
+      - "typeid"
+      - "subtypeid"
+      - "recordstatus"
