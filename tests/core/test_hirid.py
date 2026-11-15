@@ -1,21 +1,9 @@
-from datetime import datetime
-
 import pandas as pd
 
 from pyhealth.datasets import HIRIDDataset
 
 
 def _write_hirid_fixture(root):
-    pd.DataFrame(
-        {
-            "patientid": [1, 2],
-            "admissiontime": ["2150-01-01 08:00:00", "2150-02-01 09:00:00"],
-            "sex": ["F", "M"],
-            "age": [65, 70],
-            "discharge_status": ["alive", "dead"],
-        }
-    ).to_csv(root / "general_table.csv", index=False)
-
     observation_dir = root / "observation_tables" / "parquet"
     observation_dir.mkdir(parents=True)
     pd.DataFrame(
@@ -83,13 +71,8 @@ def test_hirid_loads_patient_and_deduplicates_events(tmp_path):
 
     patient = dataset.get_patient("1")
 
-    general = patient.get_events("general_table")
     observations = patient.get_events("observation_tables")
     medications = patient.get_events("pharma_records")
-
-    assert len(general) == 1
-    assert general[0].timestamp == datetime(2150, 1, 1, 8, 0)
-    assert general[0].age == "65"
 
     assert len(observations) == 2
     assert [event.value for event in observations] == [80.0, 81.0]
@@ -100,7 +83,7 @@ def test_hirid_loads_patient_and_deduplicates_events(tmp_path):
     assert medications[0].doseunit == "mg"
 
 
-def test_hirid_explicit_table_selection_does_not_add_cohort_table(tmp_path):
+def test_hirid_explicit_table_selection(tmp_path):
     _write_hirid_fixture(tmp_path)
     dataset = HIRIDDataset(
         root=tmp_path,
@@ -111,5 +94,13 @@ def test_hirid_explicit_table_selection_does_not_add_cohort_table(tmp_path):
 
     assert dataset.tables == ["observation_tables"]
     patient = dataset.get_patient("1")
-    assert len(patient.get_events("general_table")) == 0
     assert len(patient.get_events("observation_tables")) == 2
+
+
+def test_hirid_rejects_non_event_table(tmp_path):
+    try:
+        HIRIDDataset(root=tmp_path, tables=["general_table"])
+    except ValueError as error:
+        assert "Unsupported HiRID table" in str(error)
+    else:
+        raise AssertionError("general_table should not be a selectable HiRID table")

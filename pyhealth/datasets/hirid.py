@@ -8,10 +8,10 @@
 # of Intensive Care Medicine of the Bern University Hospital, Switzerland.
 """HiRID source data exposed through the standard PyHealth dataset API.
 
-HiRID 1.1.1 publishes one row per ICU admission in ``general_table.csv`` and
-sharded Parquet event data under ``observation_tables/parquet`` and
-``pharma_records/parquet``. HiRID's ``patientid`` identifies an ICU admission,
-not a linkable person across admissions, so it is also the PyHealth patient ID.
+This adapter reads the two sharded Parquet event sources used by LabTOP:
+``observation_tables/parquet`` and ``pharma_records/parquet``. HiRID's
+``patientid`` identifies an ICU admission, not a linkable person across
+admissions, so it is also the PyHealth patient ID.
 
 This adapter deliberately stops at source normalization. LabTOP-specific
 cohort selection, item-frequency filtering, code-to-description mapping,
@@ -27,37 +27,23 @@ from .base_dataset import SOURCE_ROW, BaseDataset
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_TABLES = ["general_table", "observation_tables", "pharma_records"]
+SUPPORTED_TABLES = ("observation_tables", "pharma_records")
 
 
 class HIRIDDataset(BaseDataset):
     """Loads the raw HiRID 1.1.1 tables as PyHealth events.
+    HiRID is a freely accessible critical care dataset contianing data 
+    related to almost 34 thousand patient admissions to the Department of 
+    Intensive Care Medicine of the Bern University Hospital, Switzerland (ICU)
 
-    The expected directory layout is the one produced by unpacking the three
-    HiRID archives used by LabTOP::
-
-        root/
-            general_table.csv
-            hirid_variable_reference.csv
-            observation_tables/parquet/*.parquet
-            pharma_records/parquet/*.parquet
-
-    Each raw row becomes an event. ``general_table`` is an admission event,
-    observations use ``datetime``, and medication records use ``givenat``.
-    Event-table duplicates are removed using ``(patientid, timestamp, item
-    ID)`` while retaining the first source row, matching the placement of
-    LabTOP's deduplication but using raw IDs because description mapping is
-    intentionally deferred.
-
-    No minimum-length-of-stay cohort is applied, no discharge time is inferred
-    from the final event, and events are not restricted to a derived ICU
-    interval. Those choices alter a prediction cohort and belong in a task.
+    Each raw row becomes an event: observations use ``datetime`` and medication
+    records use ``givenat``. Records are deduped and uniquely identified by
+    ``(patientid, timestamp, item ID)``
 
     Args:
-        root: Directory containing the unpacked HiRID files.
-        tables: Tables to load. Defaults to all three raw clinical tables.
-            When supplied, only those tables are loaded; use
-            ``"general_table"`` explicitly when admission metadata is needed.
+        root: Directory containing the HiRID tables.
+        tables: Event tables to load. Defaults to ``observation_tables`` and
+            ``pharma_records``.
         dataset_name: Dataset name used in cache identity and logging.
         config_path: Optional alternative dataset YAML configuration.
         **kwargs: Forwarded to :class:`BaseDataset`, including ``cache_dir``,
@@ -67,7 +53,7 @@ class HIRIDDataset(BaseDataset):
         >>> from pyhealth.datasets import HIRIDDataset
         >>> dataset = HIRIDDataset(
         ...     root="/path/to/hirid/1.1.1",
-        ...     tables=["general_table", "observation_tables"],
+        ...     tables=["observation_tables"],
         ... )  # doctest: +SKIP
         >>> patient = dataset.get_patient(  # doctest: +SKIP
         ...     dataset.unique_patient_ids[0]
@@ -84,10 +70,18 @@ class HIRIDDataset(BaseDataset):
         **kwargs,
     ) -> None:
         selected_tables = list(
-            dict.fromkeys(DEFAULT_TABLES if tables is None else tables)
+            dict.fromkeys(SUPPORTED_TABLES if tables is None else tables)
         )
         if not selected_tables:
             raise ValueError("tables must contain at least one HiRID table")
+        unsupported = [
+            table for table in selected_tables if table not in SUPPORTED_TABLES
+        ]
+        if unsupported:
+            raise ValueError(
+                "Unsupported HiRID table(s): "
+                f"{', '.join(unsupported)}. Expected only {SUPPORTED_TABLES}."
+            )
 
         if config_path is None:
             logger.info("No config path provided, using default HiRID config")
