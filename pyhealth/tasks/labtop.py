@@ -1,9 +1,8 @@
-"""LabTOP's numeric eICU and HiRID tasks, operating on PyHealth Patient events."""
+"""LabTOP's numeric HiRID task, operating on PyHealth Patient events."""
 
-from abc import ABC, abstractmethod
 from collections import Counter, defaultdict, deque
 from dataclasses import dataclass
-from datetime import time, timedelta
+from datetime import timedelta
 from functools import lru_cache
 from itertools import groupby
 import math
@@ -15,14 +14,6 @@ from torch.nn.utils.rnn import pad_sequence
 from pyhealth.data import Patient
 
 
-# PyHealth names tables in lowercase. Preserve LabTOP's text in the sequence.
-_TABLES = {
-    "lab": ("lab", "labresultoffset", "labname"),
-    "medication": ("medication", "drugstartoffset", "drugname"),
-    "treatment": ("treatment", "treatmentoffset", "treatmentstring"),
-    "infusiondrug": ("infusionDrug", "infusionoffset", "drugname"),
-    "intakeoutput": ("intakeOutput", "intakeoutputoffset", "celllabel"),
-}
 _WEEKDAYS = ("MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN")
 END = "|endofevent|"
 
@@ -45,13 +36,19 @@ class _Event:
     unit: str
 
 
-class _LabTOPProcessorBase(ABC):
-    """Shared training sequences and prediction prompts for LabTOP."""
+class LabTOPHiRIDProcessor:
+    """Convert HiRID Patient objects using the raw-stage variable reference.
 
-    weekdays = ()
-    lab_table: str
+    HiRID identifies one ICU admission per patientid. As in LabTOP, all
+    numeric observations are eligible prediction targets, including vitals.
+    Medication names and dose units provide historical context. Length of stay is measured from
+    admission to the latest timestamp in either raw event table.
+    """
 
-    def __init__(self, tokenizer, max_seq_len=4096, max_days=507):
+    lab_table = "observation_tables"
+    weekdays = _WEEKDAYS
+
+    def __init__(self, tokenizer, variable_reference_path, max_seq_len=4096, max_days=250):
         if tokenizer.pad_token_id != 0 or max_seq_len < 2 or max_days < 1:
             raise ValueError("Require padding ID zero, positive max_days and length >= 2")
         self.tokenizer = tokenizer
@@ -62,7 +59,7 @@ class _LabTOPProcessorBase(ABC):
         days = [f"[DAY_{n}]" for n in range(1, max_days + 1)]
         special += days
         special += [f"[{day}]" for day in self.weekdays]
-        self.time_prefix_length = 4 if self.weekdays else 3
+        self.time_prefix_length = 4
         special += [f"[{h:02}h]" for h in range(24)]
         special += [f"[{m:02}m]" for m in range(0, 60, 10)]
         tokenizer.add_special_tokens({"additional_special_tokens": special + [END]})
@@ -70,10 +67,58 @@ class _LabTOPProcessorBase(ABC):
         self.encode = lru_cache(maxsize=32768)(
             lambda field: tokenizer.encode(field, add_special_tokens=False)
         )
+        columns = ["Source Table", "ID", "Variable Name", "Unit"]
+        try:
+            reference = pd.read_csv(variable_reference_path, usecols=columns, encoding="utf-8-sig")
+        except UnicodeDecodeError:
+            reference = pd.read_csv(variable_reference_path, usecols=columns, encoding="latin-1")
+        self.variables = {}
+        for source, code, name, unit in reference[columns].itertuples(index=False, name=None):
+            if pd.notna(code) and pd.notna(name):
+                self.variables[str(source).strip().lower(), int(code)] = (
+                    str(name).strip().lower(), "" if pd.isna(unit) else str(unit).strip()
+                )
 
-    @abstractmethod
     def _stays(self, patient):
-        """Yield (stay ID, chronological events) for eligible admissions."""
+        admissions = patient.get_events("general_table")
+        if not admissions or admissions[0].timestamp is None:
+            return
+        admission = admissions[0].timestamp
+        last = admission
+        events = []
+        seen = set()
+        for table, source, code_key in (
+            (self.lab_table, "observation", "variableid"),
+            ("pharma_records", "pharma", "pharmaid"),
+        ):
+            for row in patient.get_events(table):
+                when = row.timestamp
+                if when is None or when < admission:
+                    continue
+                last = max(last, when)
+                attrs = row.attr_dict
+                variable = self.variables.get((source, attrs[code_key]))
+                if variable is None:
+                    continue
+                name, unit = variable
+                # Distinct raw codes can map to the same descriptive name.
+                key = (when, table, name)
+                if key in seen:
+                    continue
+                seen.add(key)
+                if source == "pharma" and attrs.get("doseunit") is not None:
+                    unit = str(attrs["doseunit"]).strip() or unit
+                # LabTOP serializes observation values; pharma contributes its name and unit.
+                value = attrs.get("value") if table == self.lab_table else None
+                day = min((when.date() - admission.date()).days + 1, self.max_days)
+                stamp = (f"[DAY_{day}]", f"[{self.weekdays[when.weekday()]}]",
+                         f"[{when.hour:02}h]", f"[{when.minute // 10 * 10:02}m]")
+                events.append(_Event(
+                    (when - admission).total_seconds() / 60, stamp, table, name,
+                    str(value) if _number(value) is not None else "", unit
+                ))
+        if events and last - admission >= timedelta(hours=6):
+            yield patient.patient_id, sorted(events, key=lambda event: event.offset)
 
     def fit(self, patients):
         """Select items covering 90% of each table's training events, including ties."""
@@ -181,118 +226,6 @@ class _LabTOPProcessorBase(ABC):
                         previous[event.item] = (
                             ids[:-1], count + 1, round((mean * count + value) / (count + 1), 2)
                         )
-
-
-class LabTOPProcessor(_LabTOPProcessorBase):
-    """Convert eICU Patient objects to LabTOP sequences and lab prompts."""
-
-    lab_table = "lab"
-
-    def _stays(self, patient):
-        bounds = {}
-        for event in patient.get_events(event_type="patient"):
-            attrs = event.attr_dict
-            try:
-                clock = time.fromisoformat(str(attrs.get("unitadmittime24")))
-            except ValueError:
-                continue
-            end = _number(attrs.get("unitdischargeoffset"))
-            if end is not None and end >= 360 and attrs.get("age") is not None:
-                bounds[attrs["patientunitstayid"]] = (clock.hour * 60 + clock.minute, end)
-
-        stays = defaultdict(list)
-        seen = set()
-        for source, (table, offset_key, item_key) in _TABLES.items():
-            for event in patient.get_events(event_type=source):
-                attrs = event.attr_dict
-                stay = attrs.get("patientunitstayid")
-                offset = _number(attrs.get(offset_key))
-                item = str(attrs.get(item_key) or "").strip().lower()
-                if stay not in bounds or offset is None or item in ("", "___", "_ _ _"):
-                    continue
-                start, end = bounds[stay]
-                key = (stay, table, offset, item)
-                if not 0 <= offset <= end or key in seen:
-                    continue
-                seen.add(key)
-                day, minute = divmod(int(start + offset), 1440)
-                hour, minute = divmod(minute, 60)
-                stamp = (f"[DAY_{min(day + 1, self.max_days)}]",
-                         f"[{hour:02}h]", f"[{minute // 10 * 10:02}m]")
-                value = attrs.get("labresult")
-                unit = attrs.get("labmeasurenamesystem") or attrs.get("labmeasurenameinterface")
-                stays[stay].append(_Event(offset, stamp, table, item,
-                                          str(value) if value is not None else "", unit or ""))
-        for stay, events in stays.items():
-            yield stay, sorted(events, key=lambda event: event.offset)
-
-
-class LabTOPHiRIDProcessor(_LabTOPProcessorBase):
-    """Convert HiRID Patient objects using the raw-stage variable reference.
-
-    HiRID identifies one ICU admission per patientid. As in LabTOP, all
-    numeric observations are eligible prediction targets, including vitals.
-    Medication names and dose units provide historical context. Length of stay is measured from
-    admission to the latest timestamp in either raw event table.
-    """
-
-    lab_table = "observation_tables"
-    weekdays = _WEEKDAYS
-
-    def __init__(self, tokenizer, variable_reference_path, max_seq_len=4096, max_days=250):
-        super().__init__(tokenizer, max_seq_len, max_days)
-        columns = ["Source Table", "ID", "Variable Name", "Unit"]
-        try:
-            reference = pd.read_csv(variable_reference_path, usecols=columns, encoding="utf-8-sig")
-        except UnicodeDecodeError:
-            reference = pd.read_csv(variable_reference_path, usecols=columns, encoding="latin-1")
-        self.variables = {}
-        for source, code, name, unit in reference[columns].itertuples(index=False, name=None):
-            if pd.notna(code) and pd.notna(name):
-                self.variables[str(source).strip().lower(), int(code)] = (
-                    str(name).strip().lower(), "" if pd.isna(unit) else str(unit).strip()
-                )
-
-    def _stays(self, patient):
-        admissions = patient.get_events("general_table")
-        if not admissions or admissions[0].timestamp is None:
-            return
-        admission = admissions[0].timestamp
-        last = admission
-        events = []
-        seen = set()
-        for table, source, code_key in (
-            (self.lab_table, "observation", "variableid"),
-            ("pharma_records", "pharma", "pharmaid"),
-        ):
-            for row in patient.get_events(table):
-                when = row.timestamp
-                if when is None or when < admission:
-                    continue
-                last = max(last, when)
-                attrs = row.attr_dict
-                variable = self.variables.get((source, attrs[code_key]))
-                if variable is None:
-                    continue
-                name, unit = variable
-                # Distinct raw codes can map to the same descriptive name.
-                key = (when, table, name)
-                if key in seen:
-                    continue
-                seen.add(key)
-                if source == "pharma" and attrs.get("doseunit") is not None:
-                    unit = str(attrs["doseunit"]).strip() or unit
-                # LabTOP serializes observation values; pharma contributes its name and unit.
-                value = attrs.get("value") if table == self.lab_table else None
-                day = min((when.date() - admission.date()).days + 1, self.max_days)
-                stamp = (f"[DAY_{day}]", f"[{self.weekdays[when.weekday()]}]",
-                         f"[{when.hour:02}h]", f"[{when.minute // 10 * 10:02}m]")
-                events.append(_Event(
-                    (when - admission).total_seconds() / 60, stamp, table, name,
-                    str(value) if _number(value) is not None else "", unit
-                ))
-        if events and last - admission >= timedelta(hours=6):
-            yield patient.patient_id, sorted(events, key=lambda event: event.offset)
 
 
 def collate_labtop(rows):

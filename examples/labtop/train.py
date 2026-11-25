@@ -1,7 +1,7 @@
-"""Train LabTOP and evaluate held-out eICU or HiRID prompts.
+"""Train LabTOP and evaluate held-out HiRID prompts.
 
 From the repository root, run e.g.
-python -m examples.labtop.train test-resources/core/eicudemo --epochs 1 \
+python -m examples.labtop.train /path/to/hirid --epochs 1 \
     --max-seq-len 128 --hidden-dim 32 --layers 1 --heads 2 --batch-size 4
 
 Pass --tokenizer /path/to/Bio_ClinicalBERT for offline execution.
@@ -15,12 +15,12 @@ import torch
 from torch.utils.data import DataLoader
 from transformers import AutoTokenizer, get_linear_schedule_with_warmup
 
-from pyhealth.datasets import HIRIDDataset, eICUDataset
+from pyhealth.datasets import HIRIDDataset
 from pyhealth.datasets.hirid import REQUIRED_TABLES
 from pyhealth.metrics.labtop import labtop_metrics, parse_lab_value
 from pyhealth.models import LabTOP
 from pyhealth.tasks.labtop import (
-    END, LabTOPHiRIDProcessor, LabTOPProcessor, collate_labtop, collate_labtop_prompts,
+    END, LabTOPHiRIDProcessor, collate_labtop, collate_labtop_prompts,
 )
 
 
@@ -81,8 +81,7 @@ def evaluate(model, test_model_dataset, tokenizer, max_new_tokens):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("root")
-    parser.add_argument("--dataset", choices=["eicu", "hirid"], default="eicu")
-    parser.add_argument("--tables", nargs="+", help="Override the dataset's default source tables")
+    parser.add_argument("--dataset", choices=["hirid"], default="hirid", help=argparse.SUPPRESS)
     parser.add_argument("--cache-dir")
     parser.add_argument("--tokenizer", default="emilyalsentzer/Bio_ClinicalBERT")
     parser.add_argument("--lab-only", action="store_true", help="Restrict loss to lab token targets")
@@ -101,13 +100,8 @@ def main():
         parser.error("epochs and max-new-tokens must be positive")
     torch.manual_seed(42)
     tokenizer = AutoTokenizer.from_pretrained(args.tokenizer)
-    if args.dataset == "hirid":
-        dataset = HIRIDDataset(args.root, args.tables or list(REQUIRED_TABLES), cache_dir=args.cache_dir)
-        processor = LabTOPHiRIDProcessor(tokenizer, dataset.variable_reference_path, args.max_seq_len)
-    else:
-        tables = args.tables or ["lab", "medication", "treatment"]
-        dataset = eICUDataset(args.root, tables, cache_dir=args.cache_dir)
-        processor = LabTOPProcessor(tokenizer, args.max_seq_len)
+    dataset = HIRIDDataset(args.root, list(REQUIRED_TABLES), cache_dir=args.cache_dir)
+    processor = LabTOPHiRIDProcessor(tokenizer, dataset.variable_reference_path, args.max_seq_len)
     ids = sorted(dataset.unique_patient_ids)
     if len(ids) < 3:
         raise ValueError("Three distinct patients are required to form disjoint splits")

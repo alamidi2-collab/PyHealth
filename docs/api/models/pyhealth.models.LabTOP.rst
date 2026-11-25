@@ -2,35 +2,17 @@ pyhealth.models.LabTOP
 =====================
 
 LabTOP predicts numeric laboratory results from a chronological ICU event
-sequence. The shared example trains on eICU patients or HiRID ICU admissions
+sequence. The example trains on HiRID ICU admissions
 and evaluates the best validation epoch on held-out prompts.
 
 .. autoclass:: pyhealth.models.LabTOP
     :members:
-
-.. autoclass:: pyhealth.tasks.labtop.LabTOPProcessor
-    :members:
-    :inherited-members:
 
 .. autoclass:: pyhealth.tasks.labtop.LabTOPHiRIDProcessor
     :members:
     :inherited-members:
 
 .. autofunction:: pyhealth.metrics.labtop.labtop_metrics
-
-Running the eICU example
-------------------------
-
-From the repository root, a small CPU run on the bundled demo uses::
-
-    python -m examples.labtop.train test-resources/core/eicudemo \
-        --epochs 3 --max-seq-len 96 --hidden-dim 16 --layers 1 --heads 2 \
-        --batch-size 4 --max-new-tokens 4
-
-The example uses the patient, lab, medication and treatment tables. Include
-infusiondrug and intakeoutput with --tables when available.
-The tokenizer defaults to Bio_ClinicalBERT. Pass --tokenizer with a local
-copy for offline use.
 
 Running the HiRID example
 -------------------------
@@ -40,8 +22,10 @@ Use the HiRID 1.1.1 raw-stage layout documented by
 hirid_variable_reference.csv, observation_tables/parquet/ and pharma_records/parquet/.
 A small training configuration uses::
 
-    python -m examples.labtop.train /path/to/hirid --dataset hirid \
+    python -m examples.labtop.train /path/to/hirid \
         --epochs 1 --max-seq-len 128 --hidden-dim 32 --layers 1 --heads 2 --batch-size 4
+
+The tokenizer defaults to Bio_ClinicalBERT. Pass --tokenizer with a local copy for offline use.
 
 Each HiRID patient ID identifies one admission. Length of stay is measured from
 admission to the last timestamp across both event tables. Numeric observations,
