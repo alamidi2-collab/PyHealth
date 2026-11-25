@@ -232,7 +232,7 @@ class LabTOPHiRIDProcessor(_LabTOPProcessorBase):
 
     HiRID identifies one ICU admission per patientid. As in LabTOP, all
     numeric observations are eligible prediction targets, including vitals.
-    Medication doses are historical context. Length of stay is measured from
+    Medication names and dose units provide historical context. Length of stay is measured from
     admission to the latest timestamp in either raw event table.
     """
 
@@ -261,9 +261,9 @@ class LabTOPHiRIDProcessor(_LabTOPProcessorBase):
         last = admission
         events = []
         seen = set()
-        for table, source, code_key, value_key in (
-            (self.lab_table, "observation", "variableid", "value"),
-            ("pharma_records", "pharma", "pharmaid", "givendose"),
+        for table, source, code_key in (
+            (self.lab_table, "observation", "variableid"),
+            ("pharma_records", "pharma", "pharmaid"),
         ):
             for row in patient.get_events(table):
                 when = row.timestamp
@@ -282,7 +282,8 @@ class LabTOPHiRIDProcessor(_LabTOPProcessorBase):
                 seen.add(key)
                 if source == "pharma" and attrs.get("doseunit") is not None:
                     unit = str(attrs["doseunit"]).strip() or unit
-                value = attrs.get(value_key)
+                # LabTOP serializes observation values; pharma contributes its name and unit.
+                value = attrs.get("value") if table == self.lab_table else None
                 day = min((when.date() - admission.date()).days + 1, self.max_days)
                 stamp = (f"[DAY_{day}]", f"[{self.weekdays[when.weekday()]}]",
                          f"[{when.hour:02}h]", f"[{when.minute // 10 * 10:02}m]")

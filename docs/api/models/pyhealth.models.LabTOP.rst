@@ -45,7 +45,7 @@ A small training configuration uses::
 
 Each HiRID patient ID identifies one admission. Length of stay is measured from
 admission to the last timestamp across both event tables. Numeric observations,
-including vital signs, are eligible targets. Medication name, dose and unit
+including vital signs, are eligible targets. Medication names and dose units
 provide context. Names and observation units come from the source-specific
 variable reference. Time prefixes contain ICU day, weekday, hour and
 ten-minute bin.
