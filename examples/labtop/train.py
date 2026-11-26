@@ -1,7 +1,7 @@
 """Train LabTOP and evaluate held-out HiRID prompts.
 
 From the repository root, run e.g.
-python -m examples.labtop.train /path/to/hirid --epochs 1 \
+python -m examples.labtop.train /path/to/hirid --lab-only --epochs 1 \
     --max-seq-len 128 --hidden-dim 32 --layers 1 --heads 2 --batch-size 4
 
 Pass --tokenizer /path/to/Bio_ClinicalBERT for offline execution.
@@ -84,7 +84,11 @@ def main():
     parser.add_argument("--dataset", choices=["hirid"], default="hirid", help=argparse.SUPPRESS)
     parser.add_argument("--cache-dir")
     parser.add_argument("--tokenizer", default="emilyalsentzer/Bio_ClinicalBERT")
-    parser.add_argument("--lab-only", action="store_true", help="Restrict loss to lab token targets")
+    parser.add_argument(
+        "--lab-only", action=argparse.BooleanOptionalAction, default=True,
+        help="Train and validate on numeric observation values, units and end markers "
+             "(default). Use --no-lab-only for all-token training.",
+    )
     parser.add_argument("--accumulation-steps", type=int, default=4)
     parser.add_argument("--epochs", type=int, default=15)
     parser.add_argument("--batch-size", type=int, default=32)

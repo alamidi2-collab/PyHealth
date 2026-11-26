@@ -145,15 +145,14 @@ class LabTOPHiRIDProcessor:
             yield stay, events
 
     def _tokens(self, event):
-        header = [*event.time_tokens, event.table]
+        header = [*event.time_tokens, event.table, event.item]
         tokens = [i for field in header for i in self.encode(field)]
-        item_start = len(tokens)
-        tokens.extend(self.encode(event.item))
         value_start = len(tokens)
         for field in (event.value, event.unit, END):
             if field:
                 tokens.extend(self.encode(field))
-        types = [0] * item_start + [int(event.table == self.lab_table)] * (len(tokens) - item_start)
+        is_lab_target = event.table == self.lab_table and bool(event.value)
+        types = [0] * value_start + [int(is_lab_target)] * (len(tokens) - value_start)
         return tokens, types, value_start
 
     def preprocess(self, patient: Patient, lab_only=False):

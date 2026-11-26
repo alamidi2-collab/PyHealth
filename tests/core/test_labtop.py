@@ -41,7 +41,7 @@ class TestLabTOP(unittest.TestCase):
     def test_bridge_and_prompt_boundaries(self):
         self.processor.fit([self.patient])
         row, = self.processor.preprocess(self.patient)
-        self.assertEqual(row["types"], ([0] * 7 + [1] * 4) * 3)
+        self.assertEqual(row["types"], ([0] * 8 + [1] * 3) * 3)
         short = {key: row[key][:11] for key in ("tokens", "types")}
         ids, masks, positions = collate_labtop([row, short])
         self.assertEqual(ids.shape, (2, 33))
