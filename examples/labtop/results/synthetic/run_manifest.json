@@ -1,0 +1,75 @@
+{
+  "created_utc": "2026-11-26T20:46:57.126993+00:00",
+  "data_source": "synthetic",
+  "synthetic_only": true,
+  "reference_commit": "fa2e66749af84338f6cef7ba3c5918e09719c0e4",
+  "model_config": {
+    "max_seq_len": 128,
+    "hidden_dim": 32,
+    "n_layers": 1,
+    "n_heads": 2,
+    "lab_only": false,
+    "dropout": 0.1
+  },
+  "training": {
+    "epochs_requested": 40,
+    "epochs_completed": 40,
+    "learning_rate": 0.003,
+    "patience": 10,
+    "batch_size": 4,
+    "accumulation_steps": 1
+  },
+  "split_seed": 42,
+  "split_origin": "seeded_80_10_10",
+  "split_file_sha256": null,
+  "split_patient_counts": {
+    "train": 16,
+    "valid": 2,
+    "test": 2
+  },
+  "split_stay_counts": {
+    "train": 16,
+    "valid": 2
+  },
+  "test_prompt_count": 24,
+  "history_keep": [
+    1.0,
+    0.75,
+    0.5
+  ],
+  "max_new_tokens": 8,
+  "tables": [
+    "lab",
+    "medication",
+    "treatment"
+  ],
+  "synthetic_patients": 20,
+  "evaluation_only": false,
+  "cohort_sha256": "adff0a85b5e2b507a880ae02b2fb0e58994c55514febaa51944e5d12045d2b05",
+  "tokenizer_sha256": "8217fdf648f5216802f16d8ab7ad3b8fd089e57072faf8fd3ad1dd819aa2e5e0",
+  "checkpoint_provenance": "recorded_split_and_vocabulary",
+  "source_checkpoint_sha256": null,
+  "best_validation_epoch": 40,
+  "checkpoint_sha256": "b979fbc652055f1d811438bc19aca416ddb195f9be74f8b6852b227975b03cc1",
+  "source_sha256": {
+    "pyhealth/models/labtop.py": "33da01379ada27254fddfc8f3cf46fc15f207fb5c24b73b0ca923f1973460483",
+    "pyhealth/tasks/labtop.py": "68815c5d254ea6c3f56c3a2d56d51b58664732cae00d08d9f7dc871fa656a8b2",
+    "pyhealth/metrics/labtop.py": "ae9ec67c748f6713f33630174932c9c41a82a7b7f1f5c1a32ec7e9ffb62bc0fb",
+    "examples/labtop/train.py": "cb26501b956a7c250a85ace84e65e240ba1f966e531004be1d36b7f95b19eaa8",
+    "examples/labtop/synthetic.py": "e72c6bdd091b96455ba9d3375f4a6cfdf87044ff58603dca15d1887e7f824dca",
+    "examples/labtop/splits.py": "ee9e34ebe30b7ec77d4155c3f56e409e25f990c53b04761fb99a94b1878bfbd8"
+  },
+  "environment": {
+    "python": "3.12.14",
+    "device": "cpu",
+    "threads": 1,
+    "torch": "2.10.0+cpu",
+    "transformers": "5.24.1",
+    "numpy": "2.5.4",
+    "pandas": "2.3.3",
+    "polars": "1.35.2",
+    "pyhealth": "2.1.0"
+  },
+  "interpretation": "Synthetic execution demonstration only; no clinical performance claim.",
+  "metric_notes": "Item-and-unit groups. Conditional errors exclude invalid predictions; compare numeric_coverage too. Baseline errors omit missing same-unit history; no test-derived imputation."
+}

@@ -1,0 +1,503 @@
+{
+  "1.0": {
+    "model": {
+      "weighted_nmae": 0.36111111111111116,
+      "weighted_smape": 44.60317460317461,
+      "prompts": 24,
+      "numeric_predictions": 24,
+      "retained": 24,
+      "nmae_retained": 24,
+      "invalid_truths": 0,
+      "invalid_predictions": 0,
+      "trimmed": 0,
+      "items": 2,
+      "numeric_items": 2,
+      "retained_items": 2,
+      "constant_items": 0,
+      "empty_after_trim_items": 0,
+      "percentiles": [
+        1.0,
+        99.0
+      ],
+      "per_item": [
+        {
+          "item": [
+            "glucose",
+            "units"
+          ],
+          "prompts": 12,
+          "numeric_predictions": 12,
+          "retained": 12,
+          "nmae_retained": 12,
+          "lower_percentile": 1.0,
+          "upper_percentile": 4.0,
+          "mae": 1.0,
+          "nmae": 0.3333333333333333,
+          "smape": 41.111111111111114,
+          "status": "retained"
+        },
+        {
+          "item": [
+            "sodium",
+            "units"
+          ],
+          "prompts": 12,
+          "numeric_predictions": 12,
+          "retained": 12,
+          "nmae_retained": 12,
+          "lower_percentile": 1.0,
+          "upper_percentile": 4.0,
+          "mae": 1.1666666666666667,
+          "nmae": 0.3888888888888889,
+          "smape": 48.0952380952381,
+          "status": "retained"
+        }
+      ],
+      "numeric_coverage": 1.0
+    },
+    "last_value": {
+      "weighted_nmae": 0.5,
+      "weighted_smape": 61.904761904761905,
+      "prompts": 24,
+      "numeric_predictions": 20,
+      "retained": 20,
+      "nmae_retained": 20,
+      "invalid_truths": 0,
+      "invalid_predictions": 4,
+      "trimmed": 0,
+      "items": 2,
+      "numeric_items": 2,
+      "retained_items": 2,
+      "constant_items": 0,
+      "empty_after_trim_items": 0,
+      "percentiles": [
+        1.0,
+        99.0
+      ],
+      "per_item": [
+        {
+          "item": [
+            "glucose",
+            "units"
+          ],
+          "prompts": 12,
+          "numeric_predictions": 10,
+          "retained": 10,
+          "nmae_retained": 10,
+          "lower_percentile": 1.0,
+          "upper_percentile": 4.0,
+          "mae": 1.4,
+          "nmae": 0.4666666666666666,
+          "smape": 57.904761904761905,
+          "status": "retained"
+        },
+        {
+          "item": [
+            "sodium",
+            "units"
+          ],
+          "prompts": 12,
+          "numeric_predictions": 10,
+          "retained": 10,
+          "nmae_retained": 10,
+          "lower_percentile": 1.0,
+          "upper_percentile": 4.0,
+          "mae": 1.6,
+          "nmae": 0.5333333333333333,
+          "smape": 65.90476190476191,
+          "status": "retained"
+        }
+      ],
+      "numeric_coverage": 0.8333333333333334
+    },
+    "history_mean": {
+      "weighted_nmae": 0.41999999999999993,
+      "weighted_smape": 49.82156293998399,
+      "prompts": 24,
+      "numeric_predictions": 20,
+      "retained": 20,
+      "nmae_retained": 20,
+      "invalid_truths": 0,
+      "invalid_predictions": 4,
+      "trimmed": 0,
+      "items": 2,
+      "numeric_items": 2,
+      "retained_items": 2,
+      "constant_items": 0,
+      "empty_after_trim_items": 0,
+      "percentiles": [
+        1.0,
+        99.0
+      ],
+      "per_item": [
+        {
+          "item": [
+            "glucose",
+            "units"
+          ],
+          "prompts": 12,
+          "numeric_predictions": 10,
+          "retained": 10,
+          "nmae_retained": 10,
+          "lower_percentile": 1.0,
+          "upper_percentile": 4.0,
+          "mae": 1.1666666666666665,
+          "nmae": 0.38888888888888884,
+          "smape": 45.94583194583195,
+          "status": "retained"
+        },
+        {
+          "item": [
+            "sodium",
+            "units"
+          ],
+          "prompts": 12,
+          "numeric_predictions": 10,
+          "retained": 10,
+          "nmae_retained": 10,
+          "lower_percentile": 1.0,
+          "upper_percentile": 4.0,
+          "mae": 1.3533333333333333,
+          "nmae": 0.4511111111111111,
+          "smape": 53.69729393413604,
+          "status": "retained"
+        }
+      ],
+      "numeric_coverage": 0.8333333333333334
+    }
+  },
+  "0.75": {
+    "model": {
+      "weighted_nmae": 0.37878787878787884,
+      "weighted_smape": 47.965367965367975,
+      "prompts": 24,
+      "numeric_predictions": 22,
+      "retained": 22,
+      "nmae_retained": 22,
+      "invalid_truths": 0,
+      "invalid_predictions": 2,
+      "trimmed": 0,
+      "items": 2,
+      "numeric_items": 2,
+      "retained_items": 2,
+      "constant_items": 0,
+      "empty_after_trim_items": 0,
+      "percentiles": [
+        1.0,
+        99.0
+      ],
+      "per_item": [
+        {
+          "item": [
+            "glucose",
+            "units"
+          ],
+          "prompts": 12,
+          "numeric_predictions": 11,
+          "retained": 11,
+          "nmae_retained": 11,
+          "lower_percentile": 1.0,
+          "upper_percentile": 4.0,
+          "mae": 1.0909090909090908,
+          "nmae": 0.3636363636363636,
+          "smape": 46.66666666666667,
+          "status": "retained"
+        },
+        {
+          "item": [
+            "sodium",
+            "units"
+          ],
+          "prompts": 12,
+          "numeric_predictions": 11,
+          "retained": 11,
+          "nmae_retained": 11,
+          "lower_percentile": 1.0,
+          "upper_percentile": 4.0,
+          "mae": 1.1818181818181819,
+          "nmae": 0.393939393939394,
+          "smape": 49.26406926406926,
+          "status": "retained"
+        }
+      ],
+      "numeric_coverage": 0.9166666666666666
+    },
+    "last_value": {
+      "weighted_nmae": 0.5,
+      "weighted_smape": 61.904761904761905,
+      "prompts": 24,
+      "numeric_predictions": 20,
+      "retained": 20,
+      "nmae_retained": 20,
+      "invalid_truths": 0,
+      "invalid_predictions": 4,
+      "trimmed": 0,
+      "items": 2,
+      "numeric_items": 2,
+      "retained_items": 2,
+      "constant_items": 0,
+      "empty_after_trim_items": 0,
+      "percentiles": [
+        1.0,
+        99.0
+      ],
+      "per_item": [
+        {
+          "item": [
+            "glucose",
+            "units"
+          ],
+          "prompts": 12,
+          "numeric_predictions": 10,
+          "retained": 10,
+          "nmae_retained": 10,
+          "lower_percentile": 1.0,
+          "upper_percentile": 4.0,
+          "mae": 1.4,
+          "nmae": 0.4666666666666666,
+          "smape": 57.904761904761905,
+          "status": "retained"
+        },
+        {
+          "item": [
+            "sodium",
+            "units"
+          ],
+          "prompts": 12,
+          "numeric_predictions": 10,
+          "retained": 10,
+          "nmae_retained": 10,
+          "lower_percentile": 1.0,
+          "upper_percentile": 4.0,
+          "mae": 1.6,
+          "nmae": 0.5333333333333333,
+          "smape": 65.90476190476191,
+          "status": "retained"
+        }
+      ],
+      "numeric_coverage": 0.8333333333333334
+    },
+    "history_mean": {
+      "weighted_nmae": 0.41999999999999993,
+      "weighted_smape": 49.82156293998399,
+      "prompts": 24,
+      "numeric_predictions": 20,
+      "retained": 20,
+      "nmae_retained": 20,
+      "invalid_truths": 0,
+      "invalid_predictions": 4,
+      "trimmed": 0,
+      "items": 2,
+      "numeric_items": 2,
+      "retained_items": 2,
+      "constant_items": 0,
+      "empty_after_trim_items": 0,
+      "percentiles": [
+        1.0,
+        99.0
+      ],
+      "per_item": [
+        {
+          "item": [
+            "glucose",
+            "units"
+          ],
+          "prompts": 12,
+          "numeric_predictions": 10,
+          "retained": 10,
+          "nmae_retained": 10,
+          "lower_percentile": 1.0,
+          "upper_percentile": 4.0,
+          "mae": 1.1666666666666665,
+          "nmae": 0.38888888888888884,
+          "smape": 45.94583194583195,
+          "status": "retained"
+        },
+        {
+          "item": [
+            "sodium",
+            "units"
+          ],
+          "prompts": 12,
+          "numeric_predictions": 10,
+          "retained": 10,
+          "nmae_retained": 10,
+          "lower_percentile": 1.0,
+          "upper_percentile": 4.0,
+          "mae": 1.3533333333333333,
+          "nmae": 0.4511111111111111,
+          "smape": 53.69729393413604,
+          "status": "retained"
+        }
+      ],
+      "numeric_coverage": 0.8333333333333334
+    }
+  },
+  "0.5": {
+    "model": {
+      "weighted_nmae": 0.2812287866216988,
+      "weighted_smape": 32.2943722943723,
+      "prompts": 24,
+      "numeric_predictions": 14,
+      "retained": 11,
+      "nmae_retained": 11,
+      "invalid_truths": 0,
+      "invalid_predictions": 10,
+      "trimmed": 3,
+      "items": 2,
+      "numeric_items": 2,
+      "retained_items": 2,
+      "constant_items": 0,
+      "empty_after_trim_items": 0,
+      "percentiles": [
+        1.0,
+        99.0
+      ],
+      "per_item": [
+        {
+          "item": [
+            "glucose",
+            "units"
+          ],
+          "prompts": 12,
+          "numeric_predictions": 8,
+          "retained": 6,
+          "nmae_retained": 6,
+          "lower_percentile": 1.07,
+          "upper_percentile": 3.9299999999999997,
+          "mae": 0.6666666666666666,
+          "nmae": 0.23310023310023315,
+          "smape": 30.0,
+          "status": "retained"
+        },
+        {
+          "item": [
+            "sodium",
+            "units"
+          ],
+          "prompts": 12,
+          "numeric_predictions": 6,
+          "retained": 5,
+          "nmae_retained": 5,
+          "lower_percentile": 1.05,
+          "upper_percentile": 4.0,
+          "mae": 1.0,
+          "nmae": 0.3389830508474576,
+          "smape": 35.04761904761905,
+          "status": "retained"
+        }
+      ],
+      "numeric_coverage": 0.5833333333333334
+    },
+    "last_value": {
+      "weighted_nmae": 0.5,
+      "weighted_smape": 61.904761904761905,
+      "prompts": 24,
+      "numeric_predictions": 20,
+      "retained": 20,
+      "nmae_retained": 20,
+      "invalid_truths": 0,
+      "invalid_predictions": 4,
+      "trimmed": 0,
+      "items": 2,
+      "numeric_items": 2,
+      "retained_items": 2,
+      "constant_items": 0,
+      "empty_after_trim_items": 0,
+      "percentiles": [
+        1.0,
+        99.0
+      ],
+      "per_item": [
+        {
+          "item": [
+            "glucose",
+            "units"
+          ],
+          "prompts": 12,
+          "numeric_predictions": 10,
+          "retained": 10,
+          "nmae_retained": 10,
+          "lower_percentile": 1.0,
+          "upper_percentile": 4.0,
+          "mae": 1.4,
+          "nmae": 0.4666666666666666,
+          "smape": 57.904761904761905,
+          "status": "retained"
+        },
+        {
+          "item": [
+            "sodium",
+            "units"
+          ],
+          "prompts": 12,
+          "numeric_predictions": 10,
+          "retained": 10,
+          "nmae_retained": 10,
+          "lower_percentile": 1.0,
+          "upper_percentile": 4.0,
+          "mae": 1.6,
+          "nmae": 0.5333333333333333,
+          "smape": 65.90476190476191,
+          "status": "retained"
+        }
+      ],
+      "numeric_coverage": 0.8333333333333334
+    },
+    "history_mean": {
+      "weighted_nmae": 0.41999999999999993,
+      "weighted_smape": 49.82156293998399,
+      "prompts": 24,
+      "numeric_predictions": 20,
+      "retained": 20,
+      "nmae_retained": 20,
+      "invalid_truths": 0,
+      "invalid_predictions": 4,
+      "trimmed": 0,
+      "items": 2,
+      "numeric_items": 2,
+      "retained_items": 2,
+      "constant_items": 0,
+      "empty_after_trim_items": 0,
+      "percentiles": [
+        1.0,
+        99.0
+      ],
+      "per_item": [
+        {
+          "item": [
+            "glucose",
+            "units"
+          ],
+          "prompts": 12,
+          "numeric_predictions": 10,
+          "retained": 10,
+          "nmae_retained": 10,
+          "lower_percentile": 1.0,
+          "upper_percentile": 4.0,
+          "mae": 1.1666666666666665,
+          "nmae": 0.38888888888888884,
+          "smape": 45.94583194583195,
+          "status": "retained"
+        },
+        {
+          "item": [
+            "sodium",
+            "units"
+          ],
+          "prompts": 12,
+          "numeric_predictions": 10,
+          "retained": 10,
+          "nmae_retained": 10,
+          "lower_percentile": 1.0,
+          "upper_percentile": 4.0,
+          "mae": 1.3533333333333333,
+          "nmae": 0.4511111111111111,
+          "smape": 53.69729393413604,
+          "status": "retained"
+        }
+      ],
+      "numeric_coverage": 0.8333333333333334
+    }
+  }
+}

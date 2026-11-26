@@ -164,3 +164,9 @@ def __getattr__(name: str):
 
         return PTBXLSuperclassClassification
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+from .labtop import (
+    LabTOPTask as LabTOPTask,
+    LabTOPProcessor as LabTOPProcessor,
+    LabTOPHiRIDProcessor as LabTOPHiRIDProcessor,
+)

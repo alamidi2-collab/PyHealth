@@ -1,0 +1,6 @@
+data_source,method,history_keep,weighted_nmae,weighted_smape,prompts,numeric_predictions,retained,nmae_retained,invalid_truths,invalid_predictions,trimmed,items,numeric_items,retained_items,constant_items,empty_after_trim_items,percentiles,numeric_coverage
+synthetic,model,1.0,0.36111111111111116,44.60317460317461,24,24,24,24,0,0,0,2,2,2,0,0,"[1.0, 99.0]",1.0
+synthetic,last_value,1.0,0.5,61.904761904761905,24,20,20,20,0,4,0,2,2,2,0,0,"[1.0, 99.0]",0.8333333333333334
+synthetic,history_mean,1.0,0.41999999999999993,49.82156293998399,24,20,20,20,0,4,0,2,2,2,0,0,"[1.0, 99.0]",0.8333333333333334
+synthetic,model,0.75,0.37878787878787884,47.965367965367975,24,22,22,22,0,2,0,2,2,2,0,0,"[1.0, 99.0]",0.9166666666666666
+synthetic,model,0.5,0.2812287866216988,32.2943722943723,24,14,11,11,0,10,3,2,2,2,0,0,"[1.0, 99.0]",0.5833333333333334

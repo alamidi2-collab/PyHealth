@@ -1,67 +1,83 @@
 pyhealth.models.LabTOP
 =====================
 
-LabTOP predicts numeric laboratory results from a chronological ICU event
-sequence. The shared example trains on eICU patients or HiRID ICU admissions
-and evaluates the best validation epoch on held-out prompts.
+LabTOP predicts numeric laboratory values from chronological ICU event text.
+This adapter inherits :class:`pyhealth.models.BaseModel` and retains the
+existing tokenizer-first constructor. It supports a native PyHealth sample
+dataset, shifted autoregressive loss, an embedding-based forward method, and
+greedy value generation with restored model modes.
+
+Original paper: `Im, Oh, and Choi, CHIL 2025
+<https://proceedings.mlr.press/v287/im25a.html>`_.
 
 .. autoclass:: pyhealth.models.LabTOP
     :members:
 
-.. autoclass:: pyhealth.tasks.labtop.LabTOPProcessor
-    :members:
-    :inherited-members:
+Offline full pipeline
+---------------------
 
-.. autoclass:: pyhealth.tasks.labtop.LabTOPHiRIDProcessor
-    :members:
-    :inherited-members:
+After installing the checkout, run from the repository root::
+
+    python examples/eicu_lab_prediction_labtop.py --synthetic --epochs 2 \
+        --max-new-tokens 8 --history-keep 1 .75 .5 --output /tmp/labtop_smoke
+
+Invented eICU-shaped records and a local tokenizer exercise dataset loading,
+:class:`pyhealth.tasks.labtop.LabTOPTask`, a native sample dataset, model
+training, validation checkpoint selection, and held-out prompt evaluation.
+Synthetic scores demonstrate execution only.
+
+``examples/labtop/README.md`` documents longer runs, recorded synthetic results,
+clinical data commands, checkpoint compatibility, and all reproduction limits.
+``examples/my_replication.py`` is an equivalent full-pipeline entry point.
+
+Checkpoint evaluation
+---------------------
+
+Saved runs contain ``best_model.pt`` and the matching ``tokenizer/`` directory.
+Evaluate without training::
+
+    python examples/eicu_lab_prediction_labtop.py --synthetic --eval-only \
+        --checkpoint /tmp/labtop_smoke/best_model.pt --max-new-tokens 8 \
+        --history-keep 1 .75 .5 --output /tmp/labtop_reload
+
+For local clinical data, replace ``--synthetic`` with the eICU root. Use
+``--dataset hirid`` for the raw HiRID layout documented in
+:class:`pyhealth.datasets.HIRIDDataset`. Keep the checkpoint's original
+architecture, tokenizer and patient split. Legacy adapter state dictionaries
+may omit only the newly added BaseModel device marker; incompatible weights
+raise an error.
+
+Held-out inference and metrics
+------------------------------
+
+Training patients alone determine frequent-item selection. Validation token
+loss selects the checkpoint. The ``test_prompt_dataset`` contains only test
+patients. Prompt construction retains complete earlier events, excludes the
+entire target time bin, and reserves the requested generation budget without
+using the answer's length. The target item name stays in the input while its
+value, unit and delimiter stay in the labels.
+
+.. autofunction:: pyhealth.metrics.labtop.parse_lab_value
 
 .. autofunction:: pyhealth.metrics.labtop.labtop_metrics
 
-Running the eICU example
-------------------------
+Errors are conditional on numeric predictions. Always inspect parse coverage,
+retained counts and undefined scores. Last-value and historical-mean baselines
+are evaluated separately and omit targets with missing same-unit history.
+Saved CSV/JSON outputs contain aggregates rather than patient-level records.
 
-From the repository root, a small CPU run on the bundled demo uses::
+Robustness experiment and scope
+-------------------------------
 
-    python -m examples.labtop.train test-resources/core/eicudemo \
-        --epochs 3 --max-seq-len 96 --hidden-dim 16 --layers 1 --heads 2 \
-        --batch-size 4 --max-new-tokens 4
+``--history-keep 1 .75 .5`` removes complete previous events while holding the
+checkpoint, test targets, target headers and generation settings fixed. Matched
+random draws create nested retained sets. This is an inference robustness
+experiment; lower errors on fewer parseable targets do not imply improvement.
 
-The example uses the patient, lab, medication and treatment tables. Include
-infusiondrug and intakeoutput with --tables when available.
-The tokenizer defaults to Bio_ClinicalBERT. Pass --tokenizer with a local
-copy for offline use.
-
-Running the HiRID example
--------------------------
-
-Use the HiRID 1.1.1 raw-stage layout documented by
-:class:`pyhealth.datasets.HIRIDDataset`. The root contains general_table.csv,
-hirid_variable_reference.csv, observation_tables/parquet/ and pharma_records/parquet/.
-A small training configuration uses::
-
-    python -m examples.labtop.train /path/to/hirid --dataset hirid \
-        --epochs 1 --max-seq-len 128 --hidden-dim 32 --layers 1 --heads 2 --batch-size 4
-
-Each HiRID patient ID identifies one admission. Length of stay is measured from
-admission to the last timestamp across both event tables. Numeric observations,
-including vital signs, are eligible targets. Medication name, dose and unit
-provide context. Names and observation units come from the source-specific
-variable reference. Time prefixes contain ICU day, weekday, hour and
-ten-minute bin.
-
-Training and evaluation
------------------------
-
-Patients are split 80/10/10 with seed 42. The processor selects frequent items
-on training patients and encodes eligible stays of at least six hours. Each
-training batch contains token IDs, lab masks and sequential position IDs, all
-right-padded to the longest sequence. The default loss uses real next-token
-targets. Use --lab-only to restrict supervision to the lab item name, value,
-unit and end-of-event marker.
-
-Test prompts contain complete earlier events followed by the time, table and
-item of the requested lab. The processor excludes all other events in that
-ten-minute bin and reserves generation space independently of the target value.
-Evaluation uses the best validation epoch and reports the number of generated
-values that parse as numbers alongside the percentile-trimmed errors.
+The current lab-only mask includes lab item names, values, units and delimiters,
+matching the released source mask. The default objective is full autoregressive
+loss, while ``--lab-only`` uses that mask. The port does not reconstruct every
+paper demographic or digit-tokenization choice. Its HiRID processor targets
+numeric observations including vitals, which differs from the final paper's
+selected laboratory cohort. Clinical reproduction requires matching those
+choices and evaluating the actual trained clinical checkpoint.
