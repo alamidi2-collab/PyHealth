@@ -9,7 +9,7 @@ from transformers import GPT2Config, GPT2LMHeadModel
 class LabTOP(nn.Module):
     """GPT-2 decoder with LabTOP's shifted next-token objective.
 
-    Instantiate after extending the tokenizer with LabTOPProcessor. Forward
+    Instantiate after extending the tokenizer with LabTOPHiRIDProcessor. Forward
     accepts the three [batch, length] tensors returned by collate_labtop.
     """
 

@@ -203,8 +203,12 @@ def test_hirid_labtop_stay_and_prompt(tmp_path):
     prefix, _, _, _ = collate_labtop_prompts([prompt])
     tokens = tokenizer.convert_ids_to_tokens(prefix[0].tolist())
     assert tokens[-2:] == ["heart", "rate"]
-    assert "dobutamine" in tokens
-    assert row["types"][tokens.index("dobutamine")] == 0
-    assert row["types"][tokens.index("heart")] == 1
+    drug_start = tokens.index("dobutamine")
+    assert tokens[drug_start:drug_start + 3] == ["dobutamine", "mg", "|endofevent|"]
+    assert row["types"][drug_start] == 0
+    target_start = len(prefix[0])
+    assert row["types"][target_start - 2:target_start] == [0, 0]  # heart rate
+    assert row["types"][target_start:] == [1] * (len(row["tokens"]) - target_start)
+    assert row["tokens"][target_start:] == prompt["lab_tokens"][prompt["value_start"]:]
     stamp = ["[DAY_2]", "[FRI]", "[00h]", "[10m]"]
     assert tokenizer.convert_ids_to_tokens(prompt["lab_tokens"][:4]) == stamp

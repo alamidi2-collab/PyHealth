@@ -28,7 +28,7 @@ person across admissions, so it is also the PyHealth patient ID.
 
 This adapter deliberately stops at source normalization. LabTOP-specific
 cohort selection, item-frequency filtering, code-to-description mapping,
-relative ICU time, and text/token construction belong to a task or processor.
+relative ICU time, and text/token construction belong to the labtop task / processor.
 """
 
 import logging
@@ -50,9 +50,9 @@ VARIABLE_REFERENCE_FILE = "hirid_variable_reference.csv"
 
 class HIRIDDataset(BaseDataset):
     """Loads the raw HiRID 1.1.1 tables as PyHealth events.
-    HiRID is a freely accessible critical care dataset containing data
-    related to almost 34 thousand patient admissions to the Department of
-    Intensive Care Medicine of the Bern University Hospital, Switzerland (ICU)
+    HiRID contains data related to almost 34 thousand patient admissions to the
+    Department of Intensive Care Medicine of the 
+    Bern University Hospital, Switzerland (ICU)
 
     Each raw row becomes an event: observations use ``datetime`` and medication
     records use ``givenat``. Records are deduped and uniquely identified by
