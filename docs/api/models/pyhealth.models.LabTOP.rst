@@ -23,7 +23,7 @@ hirid_variable_reference.csv, observation_tables/parquet/ and pharma_records/par
 A small training configuration uses::
 
     python -m examples.labtop.train /path/to/hirid --lab-only \
-        --epochs 1 --max-seq-len 128 --hidden-dim 32 --layers 1 --heads 2 --batch-size 4
+        --epochs 15 --max-seq-len 2048 --hidden-dim 512 --layers 12 --heads 8 --batch-size 32
 
 The tokenizer defaults to Bio_ClinicalBERT. Pass --tokenizer with a local copy for offline use.
 
@@ -41,8 +41,8 @@ Patients are split 80/10/10 with seed 42. The processor selects frequent items
 on training patients and encodes eligible stays of at least six hours. Each
 training batch contains token IDs, lab masks and sequential position IDs, all
 right-padded to the longest sequence. The example enables ``--lab-only`` by default for both
-training and validation. The event time, table and complete item name form the
-header. Loss starts at the first value token and includes the unit, when
+training and validation. This makes event time, table and complete item name form the
+header of an event. Then, Prediction loss starts at the first value token and includes the unit, when
 present, and the end-of-event marker. Use ``--no-lab-only`` to train on all
 non-padding next tokens.
 

@@ -48,7 +48,7 @@ class LabTOPHiRIDProcessor:
     lab_table = "observation_tables"
     weekdays = _WEEKDAYS
 
-    def __init__(self, tokenizer, variable_reference_path, max_seq_len=4096, max_days=250):
+    def __init__(self, tokenizer, variable_reference_path, max_seq_len=2048, max_days=250):
         if tokenizer.pad_token_id != 0 or max_seq_len < 2 or max_days < 1:
             raise ValueError("Require padding ID zero, positive max_days and length >= 2")
         self.tokenizer = tokenizer

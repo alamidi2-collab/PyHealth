@@ -1,8 +1,10 @@
 """Train LabTOP and evaluate held-out HiRID prompts.
 
+Train a HuggingFace GPT-2 model on laboratory prompts from the HiRID dataset (ver 1.1.1 of HiRID dataset required from PhysioNet)
+
 From the repository root, run e.g.
-python -m examples.labtop.train /path/to/hirid --lab-only --epochs 1 \
-    --max-seq-len 128 --hidden-dim 32 --layers 1 --heads 2 --batch-size 4
+python -m examples.labtop.train /path/to/hirid --lab-only \
+    --epochs 15 --max-seq-len 2048 --hidden-dim 512 --layers 12 --heads 8 --batch-size 32
 
 Pass --tokenizer /path/to/Bio_ClinicalBERT for offline execution.
 """
@@ -92,7 +94,7 @@ def main():
     parser.add_argument("--accumulation-steps", type=int, default=4)
     parser.add_argument("--epochs", type=int, default=15)
     parser.add_argument("--batch-size", type=int, default=32)
-    parser.add_argument("--max-seq-len", type=int, default=4096)
+    parser.add_argument("--max-seq-len", type=int, default=2048)
     parser.add_argument("--hidden-dim", type=int, default=512)
     parser.add_argument("--layers", type=int, default=12)
     parser.add_argument("--heads", type=int, default=8)
