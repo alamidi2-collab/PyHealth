@@ -1,10 +1,10 @@
 """Train LabTOP and evaluate held-out HiRID prompts.
 
-Train a HuggingFace GPT-2 model on laboratory prompts from the HiRID dataset (ver 1.1.1 of HiRID dataset required from PhysioNet)
+For HiRID 1.1.1 archive extraction, cache setup and logging, follow the guide
+linked from examples/labtop/README.md. From the repository root, run one epoch
+on an extracted HiRID directory with
 
-From the repository root, run e.g.
-python -m examples.labtop.train /path/to/hirid --lab-only \
-    --epochs 15 --max-seq-len 2048 --hidden-dim 512 --layers 12 --heads 8 --batch-size 32
+    python -m examples.labtop.train /path/to/hirid --lab-only --epochs 1
 
 Pass --tokenizer /path/to/Bio_ClinicalBERT for offline execution.
 """
