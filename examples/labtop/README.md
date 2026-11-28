@@ -7,3 +7,8 @@ If the raw parquet files and reference tables are already extracted, the trainin
 ```bash
 python -m examples.labtop.train /path/to/hirid --lab-only --epochs 1
 ```
+
+Evaluation shows a running count of completed prompts. With redirected output
+(or `tee`), each completed prompt gets a progress line. Add `--print-samples`
+to also log each decoded input prompt, item, unit, expected completion, ground
+truth, generated text, and parsed prediction as a numbered JSON record.

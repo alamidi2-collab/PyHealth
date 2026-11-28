@@ -104,16 +104,17 @@ class TestLabTOPReporting(unittest.TestCase):
         self.assertTrue(math.isnan(empty["weighted_nmae"]))
 
     def test_sparse_item_report(self):
-        # The capped run generated both spellings of zero with this unit.
-        # These scenarios use synthetic truths and completions to stress test behavior.
+        # The space in the synthetic completion "0. 1 mmhg" decodes to 0.1.
         zero, point_one, ten, twenty = "0 mmhg", "0. 1 mmhg", "10 mmhg", "20 mmhg"
+        self.assertEqual(parse_lab_value(point_one, "mmhg"), 0.1)
+        point_one_smape = 200 * 9.9 / 10.1  # Truth 10, prediction 0.1.
         cases = [
             # truth, generated text, numeric count, retained count, bounds, MAE, SMAPE
             ([10], [ten], 1, 1, (10, 10), 0, 0),
-            ([10], [point_one], 1, 1, (10, 10), 10, 200),
+            ([10], [point_one], 1, 1, (10, 10), 9.9, point_one_smape),
             ([10, 10], [ten, ten], 2, 2, (10, 10), 0, 0),
             ([10, 10], [ten, zero], 2, 2, (10, 10), 5, 100),
-            ([10, 10], [zero, point_one], 2, 2, (10, 10), 10, 200),
+            ([10, 10], [zero, point_one], 2, 2, (10, 10), 9.95, (200 + point_one_smape) / 2),
             # BUG: The following scenario shows that prefect predictions are liable 
             # to be dropped from the 1/99th percentile bounds retention rule. 
             # see logic @pyhealth/metrics/labtop.py line 45
