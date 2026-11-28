@@ -105,17 +105,20 @@ class TestLabTOPReporting(unittest.TestCase):
 
     def test_sparse_item_report(self):
         # The capped run generated both spellings of zero with this unit.
-        # Use synthetic truths and completions to control correctness.
-        zero, dotted, ten, twenty = "0 mmhg", ". 0 mmhg", "10 mmhg", "20 mmhg"
+        # These scenarios use synthetic truths and completions to stress test behavior.
+        zero, point_one, ten, twenty = "0 mmhg", "0. 1 mmhg", "10 mmhg", "20 mmhg"
         cases = [
             # truth, generated text, numeric count, retained count, bounds, MAE, SMAPE
             ([10], [ten], 1, 1, (10, 10), 0, 0),
-            ([10], [dotted], 1, 1, (10, 10), 10, 200),
+            ([10], [point_one], 1, 1, (10, 10), 10, 200),
             ([10, 10], [ten, ten], 2, 2, (10, 10), 0, 0),
             ([10, 10], [ten, zero], 2, 2, (10, 10), 5, 100),
-            ([10, 10], [zero, dotted], 2, 2, (10, 10), 10, 200),
+            ([10, 10], [zero, point_one], 2, 2, (10, 10), 10, 200),
+            # BUG: The following scenario shows that prefect predictions are liable 
+            # to be dropped from the 1/99th percentile bounds retention rule. 
+            # see logic @pyhealth/metrics/labtop.py line 45
             ([10, 20], [ten, twenty], 2, 0, (10.1, 19.9), math.nan, math.nan),
-            ([10, 20], [zero, dotted], 2, 0, (10.1, 19.9), math.nan, math.nan),
+            ([10, 20], [zero, point_one], 2, 0, (10.1, 19.9), math.nan, math.nan),
             ([10], ["0 bpm"], 0, 0, (math.nan, math.nan), math.nan, math.nan),
             ([10, 20], [ten, "0 bpm"], 1, 1, (10, 10), 0, 0),
         ]
