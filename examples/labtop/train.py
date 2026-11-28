@@ -24,7 +24,7 @@ from transformers import AutoTokenizer, get_linear_schedule_with_warmup
 from pyhealth.data import Patient
 from pyhealth.datasets import HIRIDDataset
 from pyhealth.datasets.hirid import REQUIRED_TABLES
-from pyhealth.metrics.labtop import labtop_metrics, parse_lab_value
+from pyhealth.metrics.labtop import labtop_metrics, labtop_uncertainty, parse_lab_value, mean_value_token_entropy
 from pyhealth.models import LabTOP
 from pyhealth.tasks.labtop import (
     END, LabTOPHiRIDProcessor, collate_labtop, collate_labtop_prompts,
@@ -94,22 +94,28 @@ def train(model, train_loader, valid_loader, epochs, device, accumulation_steps)
 def evaluate(model, test_model_dataset, tokenizer, max_new_tokens, print_samples=False):
     model.eval()
     end = tokenizer.convert_tokens_to_ids(END)
-    records = []
+    records, uncertainties = [], []
     with tqdm(test_model_dataset, desc="Evaluated", unit="prompt", disable=None) as progress:
         for row in progress:
             prompts, labels, _, _ = collate_labtop_prompts([row])
-            ids = model.predict_value_tokens(prompts[0], end, max_new_tokens)
+            ids, token_entropies = model.predict_value_tokens(prompts[0], end, max_new_tokens, return_entropies=True)
             text = tokenizer.decode(ids).replace(" ##", "")
             prediction = parse_lab_value(text, row["unit"])
+            uncertainty_score = None
+            if prediction is not None:
+                uncertainty_score = mean_value_token_entropy(tokenizer, ids, token_entropies, text, row["unit"])
+            uncertainties.append(uncertainty_score)
             records.append((row["item"], row["lab_value"], prediction))
             if print_samples:
                 sample = dict(sample=len(records), item=row["item"], unit=row["unit"],
                               prompt=tokenizer.decode(prompts[0]), expected=tokenizer.decode(labels[0]),
-                              truth=row["lab_value"], generated=text, prediction=prediction)
+                              truth=row["lab_value"], generated=text, prediction=prediction, uncertainty_score=uncertainty_score)
                 tqdm.write("Inference sample " + json.dumps(sample))
             if progress.disable:
                 print(f"Evaluated {len(records)} held-out prompts", flush=True)
-    return labtop_metrics(records)
+    metrics = labtop_metrics(records)
+    metrics["uncertainty"] = labtop_uncertainty(records, uncertainties, metrics["per_item"])
+    return metrics
 
 
 def main():

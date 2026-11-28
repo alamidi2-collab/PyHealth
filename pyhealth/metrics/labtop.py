@@ -4,14 +4,18 @@ from collections import defaultdict
 import re
 
 import numpy as np
+from scipy.stats import spearmanr
+
+
+def _value_text(text, unit):
+    text = "".join(text.lower().split())
+    unit = "".join(unit.lower().split())
+    return text.removesuffix(unit) if unit else text
 
 
 def parse_lab_value(text, unit=""):
     """Parse a generated number or the midpoint of a numeric range."""
-    text = "".join(text.lower().split())
-    unit = "".join(unit.lower().split())
-    if unit and text.endswith(unit):
-        text = text[:-len(unit)]
+    text = _value_text(text, unit)
     number = r"[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?"
     match = re.fullmatch(rf"({number})(?:-({number}))?", text)
     if match:
@@ -70,3 +74,30 @@ def labtop_metrics(records):
     return {"weighted_nmae": weighted("nmae"), "weighted_smape": weighted("smape"),
             "prompts": total, "numeric_predictions": numeric, "retained": retained,
             "per_item": per_item}
+
+def mean_value_token_entropy(tokenizer, ids, token_entropies, text, unit):
+    """Mean entropy for the generated tokens overlapping the parsed value text."""
+    value = _value_text(text, unit)
+    # Decode the original WordPiece prefixes: re-encoding can change segmentation.
+    for end in range(1, len(ids) + 1):
+        prefix = tokenizer.decode(ids[:end]).replace(" ##", "")
+        if len("".join(prefix.split())) >= len(value):
+            return float(np.mean(token_entropies[:end]))
+    raise ValueError("Generated tokens did not cover the parsed value")
+
+
+def labtop_uncertainty(records, uncertainties, per_item):
+    """Pool non-perfect, parseable predictions before trimming, scaled by item span."""
+    spans = {row["item"]: row["max_v"] - row["min_v"] for row in per_item}
+    errors, scores = [], []
+    for (item, truth, pred), uncertainty_score in zip(records, uncertainties, strict=True):
+        if uncertainty_score is None or not np.isfinite(uncertainty_score) or pred is None or not np.isfinite(pred):
+            continue
+        span = spans[item]
+        if np.isfinite(truth) and truth != pred and span > 0:
+            errors.append(abs(truth - pred) / span)
+            scores.append(uncertainty_score)
+    rho = np.nan
+    if len(set(scores)) > 1 and len(set(errors)) > 1:
+        rho = float(spearmanr(scores, errors).statistic)
+    return {"spearman_rho": rho, "sample_count": len(scores)}

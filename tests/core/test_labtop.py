@@ -12,7 +12,7 @@ from torch.nn import functional as F
 from transformers import BertTokenizerFast
 
 from pyhealth.data import Patient
-from pyhealth.metrics.labtop import labtop_metrics, parse_lab_value
+from pyhealth.metrics.labtop import labtop_metrics, labtop_uncertainty, parse_lab_value, mean_value_token_entropy
 from pyhealth.models import LabTOP
 from pyhealth.tasks.labtop import LabTOPHiRIDProcessor, collate_labtop, collate_labtop_prompts
 
@@ -73,6 +73,24 @@ class TestLabTOP(unittest.TestCase):
         result["loss"].backward()
         self.assertIsNotNone(model.model.transformer.wte.weight.grad)
 
+    def test_generated_entropy(self):
+        model = LabTOP(self.tokenizer, 64, 8, 1, 2, dropout=0.0).eval()
+        prompt = self.tokenizer.encode("glucose", add_special_tokens=False)
+        # Compare the captured distributions with independent forward passes.
+        end = self.tokenizer.convert_tokens_to_ids("|endofevent|")
+        with torch.no_grad():
+            expected = model.predict_value_tokens(prompt, end, 3)
+            ids, entropies = model.predict_value_tokens(prompt, end, 3, return_entropies=True)
+            self.assertEqual(ids, expected)
+            self.assertEqual(len(ids), len(entropies))
+            for step, (token, entropy) in enumerate(zip(ids, entropies)):
+                logits = model.model(torch.tensor([prompt + ids[:step]])).logits[0, -1]
+                self.assertEqual(token, logits.argmax().item())
+                self.assertAlmostEqual(entropy, torch.distributions.Categorical(logits=logits).entropy().item(), places=5)
+        tokens = self.tokenizer.encode("1 2 mg", add_special_tokens=False)
+        self.assertEqual(parse_lab_value(self.tokenizer.decode(tokens), "mg"), 12)
+        self.assertEqual(mean_value_token_entropy(self.tokenizer, tokens, [2, 4, 100], "1 2 mg", "mg"), 3)
+
     def test_numeric_metrics(self):
         self.assertEqual(parse_lab_value("1.0 - 3.0 mg", "mg"), 2)
         self.assertEqual(parse_lab_value("-4"), -4)
@@ -94,6 +112,18 @@ class TestLabTOP(unittest.TestCase):
 
 
 class TestLabTOPReporting(unittest.TestCase):
+    def test_pooled_uncertainty(self):
+        records = [("a", 0, 2), ("a", 10, 14), ("b", 0, 10), ("b", 100, 100),
+                   ("a", 5, None), ("constant", 3, 1)]
+        report = labtop_metrics(records)
+        # Even the extrema trimmed from MAE participate. The largest raw error
+        # belongs to b and becomes the smallest after normalizing by its span.
+        result = labtop_uncertainty(records, [2, 3, 1, 9, None, 7], report["per_item"])
+        self.assertEqual(result["sample_count"], 3)
+        self.assertAlmostEqual(result["spearman_rho"], 1)
+        tied = labtop_uncertainty(records, [1] * len(records), report["per_item"])
+        self.assertTrue(math.isnan(tied["spearman_rho"]))
+
     def test_absent_item(self):
         report = labtop_metrics([("heart rate", 70, 70)])
         self.assertEqual([row["item"] for row in report["per_item"]], ["heart rate"])

@@ -38,15 +38,26 @@ class LabTOP(nn.Module):
         return {"loss": loss, "logits": logits}
 
     @torch.no_grad()
-    def predict_value_tokens(self, prompt_ids, end_token_id, max_new_tokens=50):
-        """Greedily decode one unpadded prompt until the event delimiter."""
+    def predict_value_tokens(self, prompt_ids, end_token_id, max_new_tokens=50, *, return_entropies=False):
+        """Decode a prompt, optionally returning full-vocabulary entropy per generated token (nats)."""
         device = next(self.parameters()).device
         prompt = torch.as_tensor(prompt_ids, device=device).reshape(1, -1)
         remaining = min(max_new_tokens, self.model.config.n_positions - prompt.size(1))
         if remaining <= 0:
-            return []
-        generated = self.model.generate(
+            return ([], []) if return_entropies else []
+        output = self.model.generate(
             prompt, attention_mask=torch.ones_like(prompt), do_sample=False,
             max_new_tokens=remaining, eos_token_id=end_token_id, pad_token_id=0,
-        )[0, prompt.size(1):].tolist()
-        return generated[:-1] if generated[-1] == end_token_id else generated
+            return_dict_in_generate=return_entropies, output_logits=return_entropies,
+        )
+        sequences = output.sequences if return_entropies else output
+        ids = sequences[0, prompt.size(1):].tolist()
+        if ids and ids[-1] == end_token_id:
+            ids.pop()
+        if not return_entropies:
+            return ids
+        if not ids:
+            return [], []
+        logits = torch.cat(output.logits[:len(ids)]).float()
+        entropies = torch.special.entr(logits.softmax(dim=-1)).sum(dim=-1)
+        return ids, entropies.tolist()
