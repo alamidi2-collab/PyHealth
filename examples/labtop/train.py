@@ -10,6 +10,7 @@ Pass --tokenizer /path/to/Bio_ClinicalBERT for offline execution.
 """
 
 import argparse
+import json
 import math
 import random
 from itertools import batched
@@ -17,6 +18,7 @@ from itertools import batched
 import polars as pl
 import torch
 from torch.utils.data import DataLoader
+from tqdm import tqdm
 from transformers import AutoTokenizer, get_linear_schedule_with_warmup
 
 from pyhealth.data import Patient
@@ -89,15 +91,24 @@ def train(model, train_loader, valid_loader, epochs, device, accumulation_steps)
     model.load_state_dict(best_state)
 
 
-def evaluate(model, test_model_dataset, tokenizer, max_new_tokens):
+def evaluate(model, test_model_dataset, tokenizer, max_new_tokens, print_samples=False):
     model.eval()
     end = tokenizer.convert_tokens_to_ids(END)
     records = []
-    for row in test_model_dataset:
-        prompts, _, _, _ = collate_labtop_prompts([row])
-        ids = model.predict_value_tokens(prompts[0], end, max_new_tokens)
-        text = tokenizer.decode(ids).replace(" ##", "")
-        records.append((row["item"], row["lab_value"], parse_lab_value(text, row["unit"])))
+    with tqdm(test_model_dataset, desc="Evaluated", unit="prompt", disable=None) as progress:
+        for row in progress:
+            prompts, labels, _, _ = collate_labtop_prompts([row])
+            ids = model.predict_value_tokens(prompts[0], end, max_new_tokens)
+            text = tokenizer.decode(ids).replace(" ##", "")
+            prediction = parse_lab_value(text, row["unit"])
+            records.append((row["item"], row["lab_value"], prediction))
+            if print_samples:
+                sample = dict(sample=len(records), item=row["item"], unit=row["unit"],
+                              prompt=tokenizer.decode(prompts[0]), expected=tokenizer.decode(labels[0]),
+                              truth=row["lab_value"], generated=text, prediction=prediction)
+                tqdm.write("Inference sample " + json.dumps(sample))
+            if progress.disable:
+                print(f"Evaluated {len(records)} held-out prompts", flush=True)
     return labtop_metrics(records)
 
 
@@ -125,6 +136,8 @@ def main():
     parser.add_argument("--layers", type=int, default=12)
     parser.add_argument("--heads", type=int, default=8)
     parser.add_argument("--max-new-tokens", type=int, default=50)
+    parser.add_argument("--print-samples", action="store_true",
+                        help="Print each decoded inference prompt, expected and generated text, and numeric prediction")
     args = parser.parse_args()
     if args.accumulation_steps < 1 or args.batch_size % args.accumulation_steps or args.batch_size < 1:
         parser.error("batch size must be a positive multiple of accumulation steps")
@@ -162,7 +175,7 @@ def main():
     train(model, train_loader, valid_loader, args.epochs, device, args.accumulation_steps)
     test_patients = iter_patient_batches(dataset, sorted(test_ids), read_size, "Evaluating test stays")
     test_model_dataset = (row for patient in test_patients for row in processor.make_inference_dataset(patient))
-    metrics = evaluate(model, test_model_dataset, tokenizer, args.max_new_tokens)
+    metrics = evaluate(model, test_model_dataset, tokenizer, args.max_new_tokens, print_samples=args.print_samples)
     if not metrics["prompts"]:
         raise ValueError("No eligible held-out laboratory prompts")
     print("item\tcount\tmin_v\tmax_v\tmae\tnmae\tsmape")
