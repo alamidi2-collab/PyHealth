@@ -165,6 +165,9 @@ def main():
     metrics = evaluate(model, test_model_dataset, tokenizer, args.max_new_tokens)
     if not metrics["prompts"]:
         raise ValueError("No eligible held-out laboratory prompts")
+    print("item\tcount\tmin_v\tmax_v\tmae\tnmae\tsmape")
+    for row in metrics.pop("per_item"):
+        print("{item}\t{count}\t{min_v:.6g}\t{max_v:.6g}\t{mae:.6g}\t{nmae:.6g}\t{smape:.6g}".format(**row))
     print(metrics)
 
 

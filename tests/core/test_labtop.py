@@ -83,3 +83,59 @@ class TestLabTOP(unittest.TestCase):
         self.assertEqual(result["numeric_predictions"], 6)
         self.assertAlmostEqual(result["weighted_nmae"], 1 / 3.92)
         self.assertAlmostEqual(result["weighted_smape"], sum(200 / n for n in [3, 5, 7]) / 4)
+        a, b = result["per_item"]
+        self.assertEqual((a["item"], a["count"], a["mae"]), ("a", 3, 1))
+        self.assertAlmostEqual(a["nmae"], 1 / 3.92)
+        self.assertTrue(math.isnan(b["nmae"]))
+        self.assertEqual(b["smape"], 0)
+        result = labtop_metrics([("constant", 2, 3), ("unparsed", 1, None)])
+        self.assertTrue(math.isnan(result["weighted_nmae"]))
+        self.assertEqual(result["per_item"][1]["count"], 0)
+
+
+class TestLabTOPReporting(unittest.TestCase):
+    def test_absent_item(self):
+        report = labtop_metrics([("heart rate", 70, 70)])
+        self.assertEqual([row["item"] for row in report["per_item"]], ["heart rate"])
+        empty = labtop_metrics([])
+        self.assertEqual(empty["per_item"], [])
+        self.assertEqual(empty["prompts"], 0)
+        self.assertTrue(math.isnan(empty["weighted_smape"]))
+        self.assertTrue(math.isnan(empty["weighted_nmae"]))
+
+    def test_sparse_item_report(self):
+        # The capped run generated both spellings of zero with this unit.
+        # Use synthetic truths and completions to control correctness.
+        zero, dotted, ten, twenty = "0 mmhg", ". 0 mmhg", "10 mmhg", "20 mmhg"
+        cases = [
+            # truth, generated text, numeric count, retained count, bounds, MAE, SMAPE
+            ([10], [ten], 1, 1, (10, 10), 0, 0),
+            ([10], [dotted], 1, 1, (10, 10), 10, 200),
+            ([10, 10], [ten, ten], 2, 2, (10, 10), 0, 0),
+            ([10, 10], [ten, zero], 2, 2, (10, 10), 5, 100),
+            ([10, 10], [zero, dotted], 2, 2, (10, 10), 10, 200),
+            ([10, 20], [ten, twenty], 2, 0, (10.1, 19.9), math.nan, math.nan),
+            ([10, 20], [zero, dotted], 2, 0, (10.1, 19.9), math.nan, math.nan),
+            ([10], ["0 bpm"], 0, 0, (math.nan, math.nan), math.nan, math.nan),
+            ([10, 20], [ten, "0 bpm"], 1, 1, (10, 10), 0, 0),
+        ]
+        for truths, texts, numeric, retained, bounds, mae, smape in cases:
+            with self.subTest(truths=truths, generated=texts):
+                records = [("pressure", truth, parse_lab_value(text, "mmhg"))
+                           for truth, text in zip(truths, texts, strict=True)]
+                result = labtop_metrics(records)
+                row, = result["per_item"]
+                self.assertEqual(row["item"], "pressure")
+                self.assertEqual(result["prompts"], len(truths))
+                self.assertEqual(result["numeric_predictions"], numeric)
+                self.assertEqual(result["retained"], retained)
+                self.assertEqual(row["count"], retained)
+                for actual, expected in zip(
+                    (row["min_v"], row["max_v"], row["mae"], row["smape"],
+                     result["weighted_smape"], row["nmae"], result["weighted_nmae"]),
+                    (*bounds, mae, smape, smape, math.nan, math.nan), strict=True
+                ):
+                    if math.isnan(expected):
+                        self.assertTrue(math.isnan(actual))
+                    else:
+                        self.assertAlmostEqual(actual, expected)
